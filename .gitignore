@@ -1,0 +1,11 @@
+*.env
+.env.*
+*.log
+*.tmp
+node_modules/
+.DS_Store
+trivy-*.txt
+trivy-*.json
+*.swp
+*.swo
+*~
