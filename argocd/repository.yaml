@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tetris-repo
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  type: git
+  url: https://github.com/YOUR_GITHUB_USERNAME/tetris-devsecops.git
+  # For private repos, uncomment and set credentials:
+  # username: YOUR_GITHUB_USERNAME
+  # password: YOUR_GITHUB_PAT_TOKEN

@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: tetris-project
+  namespace: argocd
+spec:
+  description: "Tetris DevSecOps Project"
+
+  sourceRepos:
+    - "https://github.com/YOUR_GITHUB_USERNAME/tetris-devsecops.git"
+
+  destinations:
+    - namespace: tetris
+      server: https://kubernetes.default.svc
+    - namespace: monitoring
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: networking.k8s.io
+      kind: Ingress
+
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: "*"
+    - group: apps
+      kind: "*"
+    - group: networking.k8s.io
+      kind: "*"
+    - group: autoscaling
+      kind: "*"
