@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+
+      # Uncomment and configure for email notifications
+      # smtp_smarthost: 'smtp.gmail.com:587'
+      # smtp_from: 'alertmanager@example.com'
+      # smtp_auth_username: 'your-email@gmail.com'
+      # smtp_auth_password: 'your-app-password'
+      # smtp_require_tls: true
+
+    route:
+      group_by: ['alertname', 'namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default-receiver'
+
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-alerts'
+          group_wait: 10s
+          repeat_interval: 1h
+
+        - match:
+            severity: warning
+          receiver: 'warning-alerts'
+          group_wait: 30s
+          repeat_interval: 4h
+
+        - match:
+            team: devsecops
+          receiver: 'devsecops-team'
+
+    receivers:
+      - name: 'default-receiver'
+        webhook_configs:
+          - url: 'http://localhost:5001/'
+            send_resolved: true
+
+      - name: 'critical-alerts'
+        webhook_configs:
+          - url: 'http://localhost:5001/'
+            send_resolved: true
+        # Uncomment for Slack notifications:
+        # slack_configs:
+        #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        #     channel: '#critical-alerts'
+        #     title: '{{ .GroupLabels.alertname }}'
+        #     text: "{{ range .Alerts }}*Alert:* {{ .Annotations.summary }}\n*Description:* {{ .Annotations.description }}\n*Severity:* {{ .Labels.severity }}\n{{ end }}"
+        #     send_resolved: true
+
+      - name: 'warning-alerts'
+        webhook_configs:
+          - url: 'http://localhost:5001/'
+            send_resolved: true
+        # Uncomment for email notifications:
+        # email_configs:
+        #   - to: 'devops-team@example.com'
+        #     send_resolved: true
+
+      - name: 'devsecops-team'
+        webhook_configs:
+          - url: 'http://localhost:5001/'
+            send_resolved: true
+        # Uncomment for PagerDuty:
+        # pagerduty_configs:
+        #   - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        #     send_resolved: true
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'namespace']
+
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
