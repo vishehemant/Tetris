@@ -3,7 +3,7 @@ set -euo pipefail
 
 #######################################################################
 # Script 01: Install Prerequisites
-# Installs: Docker, kubectl, Helm, Trivy, AWS CLI (optional)
+# Installs: Docker, kubectl, Helm, Kind, Trivy, Java
 # Platform: Ubuntu/Debian
 #######################################################################
 
@@ -56,7 +56,19 @@ else
     log "kubectl installed: $(kubectl version --client 2>/dev/null)"
 fi
 
-header "Step 4: Install Helm"
+header "Step 4: Install Kind"
+if command -v kind &>/dev/null; then
+    log "Kind is already installed: $(kind version)"
+else
+    log "Installing Kind..."
+    [ "$(uname -m)" = "x86_64" ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.25.0/kind-linux-amd64
+    [ "$(uname -m)" = "aarch64" ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.25.0/kind-linux-arm64
+    sudo install -o root -g root -m 0755 kind /usr/local/bin/kind
+    rm -f kind
+    log "Kind installed: $(kind version)"
+fi
+
+header "Step 5: Install Helm"
 if command -v helm &>/dev/null; then
     log "Helm is already installed: $(helm version --short)"
 else
@@ -65,7 +77,7 @@ else
     log "Helm installed: $(helm version --short)"
 fi
 
-header "Step 5: Install Trivy"
+header "Step 6: Install Trivy"
 if command -v trivy &>/dev/null; then
     log "Trivy is already installed: $(trivy --version)"
 else
@@ -78,7 +90,7 @@ else
     log "Trivy installed: $(trivy --version)"
 fi
 
-header "Step 6: Install Java (for Jenkins)"
+header "Step 7: Install Java (for Jenkins)"
 if command -v java &>/dev/null; then
     log "Java is already installed: $(java -version 2>&1 | head -1)"
 else
@@ -89,11 +101,12 @@ fi
 
 header "Prerequisites Installation Complete!"
 log "Installed tools:"
-echo "  - Docker: $(docker --version 2>/dev/null || echo 'not found')"
+echo "  - Docker:  $(docker --version 2>/dev/null || echo 'not found')"
 echo "  - kubectl: $(kubectl version --client --short 2>/dev/null || echo 'not found')"
-echo "  - Helm: $(helm version --short 2>/dev/null || echo 'not found')"
-echo "  - Trivy: $(trivy --version 2>/dev/null || echo 'not found')"
-echo "  - Java: $(java -version 2>&1 | head -1 || echo 'not found')"
+echo "  - Kind:    $(kind version 2>/dev/null || echo 'not found')"
+echo "  - Helm:    $(helm version --short 2>/dev/null || echo 'not found')"
+echo "  - Trivy:   $(trivy --version 2>/dev/null || echo 'not found')"
+echo "  - Java:    $(java -version 2>&1 | head -1 || echo 'not found')"
 echo ""
 warn "NOTE: You may need to log out and log back in for Docker group changes to take effect."
 warn "Run: newgrp docker"

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #######################################################################
-# Script 06: Install Monitoring Stack
+# Script 06: Install Monitoring Stack (Kind cluster)
 # Installs: Prometheus, Grafana, AlertManager
 # Option A: Using manifests (from this repo)
 # Option B: Using kube-prometheus-stack Helm chart (recommended for prod)
@@ -76,18 +76,21 @@ fi
 
 header "Monitoring Stack Installation Complete!"
 echo ""
-log "Access URLs:"
-echo "  - Prometheus:   http://<NODE_IP>:30090"
-echo "  - Grafana:      http://<NODE_IP>:30030 (admin/admin123)"
-echo "  - AlertManager: http://<NODE_IP>:30093"
+log "Access URLs (Kind - all via localhost):"
+echo "  - Prometheus:   http://localhost:30090"
+echo "  - Grafana:      http://localhost:30030 (admin/admin123)"
+echo "  - AlertManager: http://localhost:30093"
 echo ""
-warn "On minikube, use: minikube service <service-name> -n monitoring --url"
+warn "If ports are not reachable, use port-forward as fallback:"
+warn "  kubectl port-forward svc/prometheus -n monitoring 9090:9090"
+warn "  kubectl port-forward svc/grafana -n monitoring 3000:3000"
+warn "  kubectl port-forward svc/alertmanager -n monitoring 9093:9093"
 echo ""
 log "Monitoring pods:"
 kubectl get pods -n monitoring
 echo ""
 log "Next Steps:"
-echo "  1. Access Grafana at http://<NODE_IP>:30030"
+echo "  1. Access Grafana at http://localhost:30030"
 echo "  2. Login with admin / admin123"
 echo "  3. Pre-configured dashboards are available under 'Dashboards'"
 echo "  4. Import additional dashboards from https://grafana.com/grafana/dashboards/"

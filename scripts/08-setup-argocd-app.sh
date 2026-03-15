@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #######################################################################
-# Script 08: Configure Argo CD Application
+# Script 08: Configure Argo CD Application (Kind cluster)
 # Sets up the Argo CD application for GitOps continuous deployment
 #######################################################################
 
@@ -17,7 +17,7 @@ header() { echo -e "\n${CYAN}========================================${NC}"; ech
 
 GIT_REPO_URL="${GIT_REPO_URL:-https://github.com/YOUR_GITHUB_USERNAME/tetris-devsecops.git}"
 
-header "Setting up Argo CD Application"
+header "Setting up Argo CD Application (Kind)"
 
 log "Getting Argo CD admin password..."
 ARGOCD_PASSWORD=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
@@ -54,6 +54,8 @@ argocd app get tetris-app
 echo ""
 log "The application is now managed by Argo CD."
 log "Any changes to the k8s/ directory in Git will be automatically synced."
+echo ""
+log "Access Argo CD UI: https://localhost:30443"
 echo ""
 log "Useful Argo CD commands:"
 echo "  argocd app get tetris-app        # Check app status"

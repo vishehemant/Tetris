@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #######################################################################
-# Script 10: Cleanup - Remove all resources
+# Script 10: Cleanup - Remove all resources (Kind cluster)
 # Use this to tear down the entire setup
 #######################################################################
 
@@ -16,6 +16,8 @@ log()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 err()  { echo -e "${RED}[ERROR]${NC} $1"; }
 header() { echo -e "\n${CYAN}========================================${NC}"; echo -e "${CYAN} $1${NC}"; echo -e "${CYAN}========================================${NC}\n"; }
+
+CLUSTER_NAME="${1:-tetris-devsecops}"
 
 header "Cleanup - Removing All Resources"
 
@@ -52,10 +54,11 @@ log "Deleting Argo CD..."
 kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml 2>/dev/null || true
 kubectl delete namespace argocd 2>/dev/null || warn "Argo CD namespace not found"
 
-read -p "Delete Minikube cluster? (yes/no): " delete_minikube
-if [ "$delete_minikube" == "yes" ]; then
-    log "Deleting Minikube cluster..."
-    minikube delete 2>/dev/null || warn "Minikube not found"
+read -p "Delete Kind cluster '${CLUSTER_NAME}'? (yes/no): " delete_kind
+if [ "$delete_kind" == "yes" ]; then
+    log "Deleting Kind cluster..."
+    kind delete cluster --name "${CLUSTER_NAME}"
+    log "Kind cluster '${CLUSTER_NAME}' deleted."
 fi
 
 read -p "Remove Docker images? (yes/no): " delete_images

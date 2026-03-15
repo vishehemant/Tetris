@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #######################################################################
-# Script 04: Install SonarQube on Kubernetes
+# Script 04: Install SonarQube on Kubernetes (Kind cluster)
 # Installs SonarQube Community Edition for code quality analysis
 #######################################################################
 
@@ -15,13 +15,12 @@ log()  { echo -e "${GREEN}[INFO]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 header() { echo -e "\n${CYAN}========================================${NC}"; echo -e "${CYAN} $1${NC}"; echo -e "${CYAN}========================================${NC}\n"; }
 
-header "Installing SonarQube on Kubernetes"
+header "Installing SonarQube on Kubernetes (Kind)"
 
 log "Creating namespace..."
 kubectl create namespace sonarqube 2>/dev/null || log "Namespace 'sonarqube' already exists"
 
 log "Setting kernel parameter for Elasticsearch..."
-# SonarQube needs this on the host
 sudo sysctl -w vm.max_map_count=524288 2>/dev/null || warn "Could not set vm.max_map_count (may need host access)"
 sudo sysctl -w fs.file-max=131072 2>/dev/null || warn "Could not set fs.file-max"
 
@@ -44,11 +43,15 @@ kubectl wait --for=condition=ready pod -l app=sonarqube -n sonarqube --timeout=6
 
 header "SonarQube Installation Complete!"
 echo ""
-log "SonarQube URL: http://<NODE_IP>:30900"
+log "SonarQube URL: http://localhost:30900"
 log "Default credentials: admin / admin123"
 echo ""
+warn "If port 30900 is not reachable, use port-forward as fallback:"
+warn "  kubectl port-forward svc/sonarqube-sonarqube -n sonarqube 9000:9000"
+warn "  Then access at http://localhost:9000"
+echo ""
 log "Next Steps:"
-echo "  1. Access SonarQube UI"
+echo "  1. Access SonarQube UI at http://localhost:30900"
 echo "  2. Change the default admin password"
 echo "  3. Generate a project token:"
 echo "     - Go to: My Account -> Security -> Generate Tokens"

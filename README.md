@@ -1,6 +1,6 @@
 # Tetris - DevSecOps CI/CD Pipeline on Kubernetes
 
-A complete, production-ready DevSecOps CI/CD pipeline that deploys a Tetris game on Kubernetes using industry-standard tools and best practices.
+A complete, production-ready DevSecOps CI/CD pipeline that deploys a Tetris game on Kubernetes using industry-standard tools and best practices. Uses **Kind (Kubernetes IN Docker)** for local cluster setup.
 
 ## Architecture Overview
 
@@ -12,7 +12,7 @@ A complete, production-ready DevSecOps CI/CD pipeline that deploys a Tetris game
                            │                                         │
                     ┌──────┴───────┐                          ┌──────┴───────┐
                     │  SonarQube   │                          │  Kubernetes  │
-                    │  + Trivy     │                          │  Cluster     │
+                    │  + Trivy     │                          │  (Kind)      │
                     │  (Security)  │                          └──────┬───────┘
                     └──────────────┘                                 │
                                                              ┌──────┴───────┐
@@ -51,7 +51,7 @@ A complete, production-ready DevSecOps CI/CD pipeline that deploys a Tetris game
 - [Prerequisites](#prerequisites)
 - [Repository Structure](#repository-structure)
 - [Step 1: Install Prerequisites](#step-1-install-prerequisites)
-- [Step 2: Set Up Kubernetes Cluster](#step-2-set-up-kubernetes-cluster)
+- [Step 2: Set Up Kubernetes Cluster (Kind)](#step-2-set-up-kubernetes-cluster-kind)
 - [Step 3: Install Jenkins (CI Server)](#step-3-install-jenkins-ci-server)
 - [Step 4: Install SonarQube (Code Quality)](#step-4-install-sonarqube-code-quality)
 - [Step 5: Install Argo CD (GitOps CD)](#step-5-install-argo-cd-gitops-cd)
@@ -71,6 +71,7 @@ A complete, production-ready DevSecOps CI/CD pipeline that deploys a Tetris game
 |------|---------|-----------------|
 | Ubuntu/Debian | Host OS | 20.04+ |
 | Docker | Containerization | 24.0+ |
+| Kind | Local Kubernetes cluster | 0.20+ |
 | kubectl | Kubernetes CLI | 1.28+ |
 | Helm | Kubernetes package manager | 3.12+ |
 | Git | Version control | 2.30+ |
@@ -79,7 +80,7 @@ A complete, production-ready DevSecOps CI/CD pipeline that deploys a Tetris game
 
 **Hardware Requirements (for local practice):**
 - CPU: 4+ cores
-- RAM: 16 GB minimum (8 GB for minikube + tools)
+- RAM: 16 GB minimum (8 GB for Kind cluster + tools)
 - Disk: 50 GB free space
 
 ---
@@ -124,8 +125,8 @@ tetris-devsecops/
 │       └── alertmanager-deployment.yaml
 │
 ├── scripts/                          # Installation & setup scripts
-│   ├── 01-install-prerequisites.sh   # Docker, kubectl, Helm, Trivy
-│   ├── 02-setup-kubernetes.sh        # Minikube or kubeadm setup
+│   ├── 01-install-prerequisites.sh   # Docker, kubectl, Kind, Helm, Trivy
+│   ├── 02-setup-kubernetes.sh        # Kind cluster setup
 │   ├── 03-install-jenkins.sh         # Jenkins (Helm or standalone)
 │   ├── 04-install-sonarqube.sh       # SonarQube on Kubernetes
 │   ├── 05-install-argocd.sh          # Argo CD installation
@@ -135,7 +136,8 @@ tetris-devsecops/
 │   ├── 09-configure-jenkins-pipeline.sh  # Jenkins configuration guide
 │   └── 10-cleanup.sh                 # Remove all resources
 │
-├── Dockerfile                        # Multi-stage Docker build
+├── kind-config.yaml                  # Kind cluster configuration with port mappings
+├── Dockerfile                        # Docker build for Tetris app
 ├── .dockerignore                     # Docker build exclusions
 ├── docker-compose.yml                # Local dev environment
 ├── Jenkinsfile                       # CI pipeline definition
@@ -148,7 +150,7 @@ tetris-devsecops/
 
 ## Step 1: Install Prerequisites
 
-> **What this does:** Installs Docker, kubectl, Helm, Trivy, and Java on your machine. These are the foundational tools needed for everything else.
+> **What this does:** Installs Docker, kubectl, Kind, Helm, Trivy, and Java on your machine. These are the foundational tools needed for everything else.
 
 ```bash
 chmod +x scripts/*.sh
@@ -159,7 +161,8 @@ chmod +x scripts/*.sh
 
 | Tool | Why It's Needed |
 |------|----------------|
-| **Docker** | Builds and runs container images. The Tetris app runs inside a Docker container. |
+| **Docker** | Builds and runs container images. Kind uses Docker to run the Kubernetes cluster nodes as containers. |
+| **Kind** | Creates local Kubernetes clusters using Docker containers as nodes. Lightweight and fast. |
 | **kubectl** | Command-line tool to interact with Kubernetes clusters. |
 | **Helm** | Package manager for Kubernetes - simplifies installing complex apps (Jenkins, Prometheus, etc.). |
 | **Trivy** | Security scanner that checks Docker images, filesystems, and config files for vulnerabilities. |
@@ -169,6 +172,7 @@ chmod +x scripts/*.sh
 
 ```bash
 docker --version        # Should show 24.x+
+kind version             # Should show v0.20+
 kubectl version --client # Should show v1.28+
 helm version --short     # Should show v3.12+
 trivy --version          # Should show 0.48+
@@ -177,33 +181,34 @@ java -version            # Should show 17+
 
 ---
 
-## Step 2: Set Up Kubernetes Cluster
+## Step 2: Set Up Kubernetes Cluster (Kind)
 
-> **What this does:** Creates a Kubernetes cluster where all applications will run. Choose minikube for local practice or kubeadm for a production-like setup.
-
-### Option A: Minikube (Recommended for Practice)
+> **What this does:** Creates a Kind (Kubernetes IN Docker) cluster with pre-configured port mappings so all services are accessible on localhost. Kind runs the entire Kubernetes cluster inside Docker containers, making it fast to create and destroy.
 
 ```bash
-./scripts/02-setup-kubernetes.sh minikube
+./scripts/02-setup-kubernetes.sh
 ```
 
-**Notes:**
-- Minikube creates a single-node cluster inside a Docker container
-- Automatically enables ingress controller, metrics server, and dashboard
-- Allocates 4 CPUs, 8 GB RAM, 40 GB disk
-- Perfect for learning - easy to reset and recreate
+### What Happens
 
-### Option B: kubeadm (Production-like)
+1. Creates a Kind cluster named `tetris-devsecops` using `kind-config.yaml`
+2. Maps NodePort ranges to localhost (so you can access services via `localhost:<port>`)
+3. Installs the NGINX Ingress Controller (Kind-specific variant)
+4. Installs the Metrics Server (patched for Kind's self-signed certs)
 
-```bash
-./scripts/02-setup-kubernetes.sh kubeadm
-```
+### Kind Cluster Configuration
 
-**Notes:**
-- Sets up a real Kubernetes cluster using kubeadm
-- Installs Calico CNI for networking
-- Installs NGINX Ingress Controller
-- Suitable for VMs on AWS/GCP/Azure
+The `kind-config.yaml` defines port mappings:
+
+| Host Port | Kubernetes Port | Purpose |
+|-----------|----------------|---------|
+| 80, 443 | 80, 443 | Ingress Controller |
+| 30080 | 30080 | Tetris App / Jenkins |
+| 30443 | 30443 | Argo CD |
+| 30090 | 30090 | Prometheus |
+| 30030 | 30030 | Grafana |
+| 30093 | 30093 | AlertManager |
+| 30900 | 30900 | SonarQube |
 
 ### Verify Cluster
 
@@ -213,7 +218,9 @@ kubectl get nodes
 kubectl get pods -A
 ```
 
-> **Key Concept:** Kubernetes is the orchestration platform that manages your containers. It handles scaling, self-healing, load balancing, and rolling updates. Every other tool in this pipeline deploys on top of Kubernetes.
+> **Key Concept:** Kind runs Kubernetes cluster nodes as Docker containers on your machine. Unlike a full VM-based cluster, Kind is extremely fast to spin up (under 60 seconds) and uses minimal resources. The `extraPortMappings` in `kind-config.yaml` forward ports from your host into the cluster, so NodePort services are accessible on `localhost`.
+
+> **Kind vs Minikube:** Kind is lighter and faster. It uses Docker containers instead of VMs. It's preferred for CI/CD testing and local development. Multiple clusters can run simultaneously.
 
 ---
 
@@ -236,11 +243,12 @@ kubectl get pods -A
 ### Access Jenkins
 
 ```bash
-# On Minikube
-minikube service jenkins -n jenkins --url
+# Kind - directly via localhost
+open http://localhost:30080
 
-# On cloud/VM
-echo "http://<YOUR_SERVER_IP>:30080"
+# Fallback via port-forward
+kubectl port-forward svc/jenkins -n jenkins 8080:8080
+open http://localhost:8080
 ```
 
 - **Username:** `admin`
@@ -252,7 +260,7 @@ After installation, you need to configure Jenkins through the UI:
 
 #### 1. Install Required Plugins
 
-Go to **Manage Jenkins → Plugins → Available Plugins** and install:
+Go to **Manage Jenkins -> Plugins -> Available Plugins** and install:
 - Docker Pipeline
 - SonarQube Scanner
 - Pipeline: Stage View
@@ -262,7 +270,7 @@ Go to **Manage Jenkins → Plugins → Available Plugins** and install:
 
 #### 2. Add Credentials
 
-Go to **Manage Jenkins → Credentials → System → Global credentials**:
+Go to **Manage Jenkins -> Credentials -> System -> Global credentials**:
 
 | Credential | ID | Type | Purpose |
 |---|---|---|---|
@@ -272,7 +280,7 @@ Go to **Manage Jenkins → Credentials → System → Global credentials**:
 
 #### 3. Configure SonarQube Server
 
-Go to **Manage Jenkins → System**:
+Go to **Manage Jenkins -> System**:
 - Scroll to **SonarQube servers**
 - Click **Add SonarQube**
 - Name: `sonarqube-server`
@@ -281,7 +289,7 @@ Go to **Manage Jenkins → System**:
 
 #### 4. Configure SonarQube Scanner Tool
 
-Go to **Manage Jenkins → Tools**:
+Go to **Manage Jenkins -> Tools**:
 - Scroll to **SonarQube Scanner installations**
 - Click **Add SonarQube Scanner**
 - Name: `sonar-scanner`
@@ -302,11 +310,12 @@ Go to **Manage Jenkins → Tools**:
 ### Access SonarQube
 
 ```bash
-# On Minikube
-minikube service sonarqube-sonarqube -n sonarqube --url
+# Kind - directly via localhost
+open http://localhost:30900
 
-# On cloud/VM
-echo "http://<YOUR_SERVER_IP>:30900"
+# Fallback via port-forward
+kubectl port-forward svc/sonarqube-sonarqube -n sonarqube 9000:9000
+open http://localhost:9000
 ```
 
 - **Username:** `admin`
@@ -317,13 +326,13 @@ echo "http://<YOUR_SERVER_IP>:30900"
 1. **Change default password** on first login
 
 2. **Generate a token:**
-   - Go to **My Account → Security → Generate Tokens**
+   - Go to **My Account -> Security -> Generate Tokens**
    - Name: `jenkins-sonar-token`
    - Type: Global Analysis Token
    - Copy the token (you'll need it for Jenkins)
 
 3. **Create a project:**
-   - Go to **Projects → Create Project → Manually**
+   - Go to **Projects -> Create Project -> Manually**
    - Project Key: `tetris-app`
    - Display Name: `Tetris App`
 
@@ -345,11 +354,12 @@ echo "http://<YOUR_SERVER_IP>:30900"
 # Get the admin password
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
-# On Minikube
-minikube service argocd-server -n argocd --url
+# Kind - directly via localhost
+open https://localhost:30443
 
-# On cloud/VM (HTTPS)
-echo "https://<YOUR_SERVER_IP>:30443"
+# Fallback via port-forward
+kubectl port-forward svc/argocd-server -n argocd 8443:443
+open https://localhost:8443
 ```
 
 ### Set Up the Argo CD Application
@@ -363,8 +373,8 @@ echo "https://<YOUR_SERVER_IP>:30443"
 Or manually via CLI:
 
 ```bash
-# Login
-argocd login <ARGOCD_SERVER> --username admin --password <PASSWORD> --insecure
+# Login (via Kind NodePort)
+argocd login localhost:30443 --username admin --password <PASSWORD> --insecure
 
 # Create application
 argocd app create tetris-app \
@@ -419,9 +429,17 @@ This separation means:
 
 | Tool | URL | Credentials |
 |------|-----|-------------|
-| Prometheus | `http://<NODE_IP>:30090` | No auth |
-| Grafana | `http://<NODE_IP>:30030` | admin / admin123 |
-| AlertManager | `http://<NODE_IP>:30093` | No auth |
+| Prometheus | `http://localhost:30090` | No auth |
+| Grafana | `http://localhost:30030` | admin / admin123 |
+| AlertManager | `http://localhost:30093` | No auth |
+
+**Fallback via port-forward:**
+
+```bash
+kubectl port-forward svc/prometheus -n monitoring 9090:9090
+kubectl port-forward svc/grafana -n monitoring 3000:3000
+kubectl port-forward svc/alertmanager -n monitoring 9093:9093
+```
 
 ### Pre-configured Dashboards
 
@@ -443,7 +461,7 @@ The setup includes two pre-built Grafana dashboards:
 
 ### Import Additional Dashboards
 
-In Grafana, go to **Dashboards → Import** and use these IDs:
+In Grafana, go to **Dashboards -> Import** and use these IDs:
 
 | Dashboard ID | Name | What It Shows |
 |---|---|---|
@@ -491,7 +509,7 @@ email_configs:
 
 ## Step 7: Build and Deploy the Application
 
-> **What this does:** Builds the Tetris Docker image, scans it for vulnerabilities, pushes it to Docker Hub, and deploys it to Kubernetes.
+> **What this does:** Builds the Tetris Docker image, scans it for vulnerabilities, loads it into the Kind cluster, and deploys it to Kubernetes. With Kind, you use `kind load docker-image` instead of pushing to a remote registry for local development.
 
 ### Quick Local Test (Docker Compose)
 
@@ -500,13 +518,13 @@ docker-compose up -d tetris
 # Access at http://localhost:8080
 ```
 
-### Full Deployment
+### Full Deployment (Kind)
 
 ```bash
 # Set your Docker Hub username
 export DOCKER_USERNAME=your-dockerhub-username
 
-# Build, scan, and deploy
+# Build, scan, load into Kind, and deploy
 ./scripts/07-deploy-application.sh v1.0.0
 ```
 
@@ -519,8 +537,8 @@ docker build -t your-username/tetris-app:v1.0.0 .
 # 2. Scan with Trivy
 trivy image --severity HIGH,CRITICAL your-username/tetris-app:v1.0.0
 
-# 3. Push to Docker Hub
-docker push your-username/tetris-app:v1.0.0
+# 3. Load image into Kind cluster (no push needed for local dev!)
+kind load docker-image your-username/tetris-app:v1.0.0 --name tetris-devsecops
 
 # 4. Update the image in deployment.yaml
 # Replace YOUR_DOCKERHUB_USERNAME/tetris-app:latest with your image
@@ -540,15 +558,18 @@ kubectl get all -n tetris
 ### Access the Application
 
 ```bash
-# NodePort
-http://<NODE_IP>:30080
+# NodePort (Kind port mapping)
+http://localhost:30080
 
-# Minikube
-minikube service tetris-service-nodeport -n tetris --url
-
-# Ingress (add to /etc/hosts: <MINIKUBE_IP> tetris.local)
+# Ingress (add '127.0.0.1 tetris.local' to /etc/hosts)
 http://tetris.local
+
+# Port-forward (always works)
+kubectl port-forward svc/tetris-service -n tetris 8080:80
+http://localhost:8080
 ```
+
+> **Kind-specific Note:** With Kind, you don't need to push images to Docker Hub for local testing. The `kind load docker-image` command copies the image directly from your local Docker daemon into the Kind cluster nodes. This is much faster than push/pull through a registry. For the full CI/CD pipeline (via Jenkins), images are pushed to Docker Hub so Argo CD can pull them.
 
 ---
 
@@ -568,14 +589,16 @@ Update these placeholders across the project:
 
 ### Set Up GitHub Webhook
 
-1. Go to your GitHub repo → **Settings → Webhooks → Add webhook**
+1. Go to your GitHub repo -> **Settings -> Webhooks -> Add webhook**
 2. Payload URL: `http://<JENKINS_URL>/github-webhook/`
 3. Content type: `application/json`
 4. Events: **Just the push event**
 
+> **Note for Kind:** Since Kind runs locally, GitHub webhooks can't reach `localhost`. For local testing, trigger Jenkins builds manually. For production, Jenkins should be on a public server or use a tool like [ngrok](https://ngrok.com) to expose your local Jenkins.
+
 ### Create Jenkins Pipeline Job
 
-1. In Jenkins → **New Item → Pipeline**
+1. In Jenkins -> **New Item -> Pipeline**
 2. Name: `tetris-devsecops-pipeline`
 3. Check **GitHub hook trigger for GITScm polling** under Build Triggers
 4. Pipeline section:
@@ -613,25 +636,25 @@ Update these placeholders across the project:
    ```
 
 2. **Watch Jenkins:**
-   - Open Jenkins UI
-   - The pipeline should trigger automatically
-   - Watch stages: Checkout → SonarQube → Quality Gate → Docker Build → Trivy Scan → Docker Push → Update Manifests
+   - Open Jenkins UI at `http://localhost:30080`
+   - Trigger the pipeline manually (or wait for webhook if publicly accessible)
+   - Watch stages: Checkout -> SonarQube -> Quality Gate -> Docker Build -> Trivy Scan -> Docker Push -> Update Manifests
 
 3. **Watch Argo CD:**
-   - Open Argo CD UI
+   - Open Argo CD UI at `https://localhost:30443`
    - The application should show "OutOfSync" briefly
    - Then automatically sync and show "Healthy"
 
 4. **Verify Deployment:**
    ```bash
    kubectl get pods -n tetris -w
-   # Watch pods rolling update (old → new)
+   # Watch pods rolling update (old -> new)
 
    kubectl rollout status deployment/tetris -n tetris
    ```
 
 5. **Check Monitoring:**
-   - Open Grafana
+   - Open Grafana at `http://localhost:30030`
    - View the "Tetris App" dashboard
    - Verify metrics are flowing
 
@@ -684,15 +707,18 @@ Update these placeholders across the project:
    - Restrict AlertManager access
    - Monitor for security events
 
-### Scaling for Production
+### Moving from Kind to Production
 
-```yaml
-# Use PersistentVolumeClaims for stateful services
-# Configure proper resource limits
-# Enable cluster autoscaling
-# Use multiple replicas for HA
-# Set up proper backup procedures
-```
+When moving to production, replace Kind with a managed Kubernetes service:
+
+| Kind (Local) | Production Equivalent |
+|---|---|
+| `kind create cluster` | EKS / GKE / AKS managed cluster |
+| `kind load docker-image` | Push to ECR / GCR / ACR / Docker Hub |
+| `extraPortMappings` | LoadBalancer services / Ingress with real DNS |
+| Self-signed certs | cert-manager with Let's Encrypt |
+| NodePort services | LoadBalancer or Ingress with TLS |
+| Single node | Multi-node with autoscaling |
 
 ### Recommended Additions for Production
 
@@ -709,6 +735,39 @@ Update these placeholders across the project:
 ---
 
 ## Troubleshooting
+
+### Kind-Specific Issues
+
+#### Port Already in Use
+
+```bash
+# If Kind creation fails due to port conflicts:
+# Check what's using the port
+sudo lsof -i :30080
+
+# Kill the process or change the port in kind-config.yaml
+```
+
+#### Image Not Found in Kind Cluster
+
+```bash
+# After building locally, you must load the image into Kind:
+kind load docker-image your-username/tetris-app:v1.0.0 --name tetris-devsecops
+
+# Verify the image is loaded:
+docker exec -it tetris-devsecops-control-plane crictl images | grep tetris
+```
+
+#### Kind Cluster Won't Start
+
+```bash
+# Check Docker is running
+docker ps
+
+# Delete and recreate the cluster
+kind delete cluster --name tetris-devsecops
+./scripts/02-setup-kubernetes.sh
+```
 
 ### Common Issues
 
@@ -760,6 +819,7 @@ kubectl describe pod -n tetris <pod-name>
 
 # Common causes:
 # - Wrong image tag
+# - Image not loaded into Kind (use: kind load docker-image)
 # - Failed health checks
 # - Insufficient resources
 ```
@@ -768,7 +828,7 @@ kubectl describe pod -n tetris <pod-name>
 
 ```bash
 # Check Prometheus targets
-# Open Prometheus UI → Status → Targets
+# Open Prometheus UI -> Status -> Targets
 
 # Verify service annotations
 kubectl get svc -n tetris -o yaml | grep prometheus
@@ -798,10 +858,15 @@ argocd app get tetris-app
 # Check Jenkins logs
 kubectl logs -n jenkins -l app.kubernetes.io/name=jenkins -f
 
-# Port forward for debugging
+# Port forward for debugging (always works with Kind)
 kubectl port-forward svc/tetris-service -n tetris 8080:80
 kubectl port-forward svc/prometheus -n monitoring 9090:9090
 kubectl port-forward svc/grafana -n monitoring 3000:3000
+kubectl port-forward svc/argocd-server -n argocd 8443:443
+
+# Check Kind cluster docker container
+docker ps --filter name=tetris-devsecops
+docker logs tetris-devsecops-control-plane
 ```
 
 ---
@@ -831,25 +896,25 @@ kubectl delete -f monitoring/alertmanager/
 # Delete namespaces
 kubectl delete namespace tetris monitoring argocd jenkins sonarqube
 
-# Delete minikube cluster
-minikube delete
+# Delete Kind cluster entirely
+kind delete cluster --name tetris-devsecops
 ```
 
 ---
 
 ## Quick Reference
 
-### All Service URLs (NodePort)
+### All Service URLs (Kind - localhost)
 
 | Service | Port | URL |
 |---------|------|-----|
-| Tetris App | 30080 | `http://<NODE_IP>:30080` |
-| Jenkins | 30080 | `http://<NODE_IP>:30080` (jenkins namespace) |
-| SonarQube | 30900 | `http://<NODE_IP>:30900` |
-| Argo CD | 30443 | `https://<NODE_IP>:30443` |
-| Prometheus | 30090 | `http://<NODE_IP>:30090` |
-| Grafana | 30030 | `http://<NODE_IP>:30030` |
-| AlertManager | 30093 | `http://<NODE_IP>:30093` |
+| Tetris App | 30080 | `http://localhost:30080` |
+| Jenkins | 30080 | `http://localhost:30080` (jenkins namespace) |
+| SonarQube | 30900 | `http://localhost:30900` |
+| Argo CD | 30443 | `https://localhost:30443` |
+| Prometheus | 30090 | `http://localhost:30090` |
+| Grafana | 30030 | `http://localhost:30030` |
+| AlertManager | 30093 | `http://localhost:30093` |
 
 ### Default Credentials
 
@@ -868,7 +933,18 @@ minikube delete
 | `k8s/deployment.yaml` | Docker image name |
 | `argocd/application.yaml` | GitHub repo URL |
 | `argocd/project.yaml` | GitHub repo URL |
+| `kind-config.yaml` | Port mappings if defaults conflict |
 | `monitoring/alertmanager/alertmanager-config.yaml` | Notification channels (Slack, email) |
+
+### Essential Kind Commands
+
+```bash
+kind create cluster --name tetris-devsecops --config kind-config.yaml   # Create cluster
+kind get clusters                                                        # List clusters
+kind load docker-image <image> --name tetris-devsecops                  # Load image
+kind delete cluster --name tetris-devsecops                              # Delete cluster
+docker exec -it tetris-devsecops-control-plane crictl images             # List images in cluster
+```
 
 ---
 
@@ -878,12 +954,13 @@ If you're new to DevSecOps, follow this recommended learning order:
 
 1. **Docker Basics** - Understand how to build and run containers
 2. **Kubernetes Fundamentals** - Learn pods, deployments, services
-3. **CI with Jenkins** - Understand pipeline stages and automation
-4. **Security Scanning** - Learn what Trivy and SonarQube find
-5. **GitOps with Argo CD** - Understand declarative deployment
-6. **Monitoring** - Learn observability with Prometheus and Grafana
-7. **Alerting** - Set up notifications for incidents
-8. **Production Hardening** - Apply security best practices
+3. **Kind** - Learn how to run local K8s clusters in Docker
+4. **CI with Jenkins** - Understand pipeline stages and automation
+5. **Security Scanning** - Learn what Trivy and SonarQube find
+6. **GitOps with Argo CD** - Understand declarative deployment
+7. **Monitoring** - Learn observability with Prometheus and Grafana
+8. **Alerting** - Set up notifications for incidents
+9. **Production Hardening** - Apply security best practices
 
 Each tool builds on the previous one. Master each layer before moving to the next.
 

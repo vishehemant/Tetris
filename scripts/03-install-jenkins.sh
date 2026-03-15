@@ -2,7 +2,7 @@
 set -euo pipefail
 
 #######################################################################
-# Script 03: Install Jenkins on Kubernetes
+# Script 03: Install Jenkins on Kubernetes (Kind cluster)
 # Installs Jenkins using Helm chart with pre-configured plugins
 #######################################################################
 
@@ -19,7 +19,7 @@ INSTALL_METHOD="${1:-helm}"
 
 if [ "$INSTALL_METHOD" == "helm" ]; then
 
-    header "Installing Jenkins via Helm"
+    header "Installing Jenkins via Helm (Kind cluster)"
 
     log "Adding Jenkins Helm repository..."
     helm repo add jenkins https://charts.jenkins.io
@@ -75,13 +75,13 @@ fi
 header "Jenkins Installation Complete!"
 echo ""
 if [ "$INSTALL_METHOD" == "helm" ]; then
-    JENKINS_URL=$(minikube service jenkins -n jenkins --url 2>/dev/null || echo "http://<NODE_IP>:30080")
-    log "Jenkins URL: ${JENKINS_URL}"
+    log "Jenkins URL: http://localhost:30080"
     log "Username: admin"
     log "Password: admin123"
     echo ""
-    warn "To get Jenkins URL on minikube: minikube service jenkins -n jenkins --url"
-    warn "To get Jenkins URL on cloud: http://<NODE_EXTERNAL_IP>:30080"
+    warn "If port 30080 is not reachable, use port-forward as fallback:"
+    warn "  kubectl port-forward svc/jenkins -n jenkins 8080:8080"
+    warn "  Then access at http://localhost:8080"
 else
     log "Jenkins URL: http://localhost:8080"
     log "Initial password: $(sudo cat /var/lib/jenkins/secrets/initialAdminPassword 2>/dev/null || echo 'Check /var/lib/jenkins/secrets/initialAdminPassword')"
@@ -89,7 +89,7 @@ fi
 
 echo ""
 log "Next Steps:"
-echo "  1. Access Jenkins UI"
+echo "  1. Access Jenkins UI at http://localhost:30080"
 echo "  2. Install suggested plugins"
 echo "  3. Configure the following:"
 echo "     a. Docker Hub credentials (ID: dockerhub-credentials)"
