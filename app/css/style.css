@@ -1,0 +1,174 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a2e;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    text-align: center;
+    padding: 20px;
+}
+
+header h1 {
+    font-size: 3rem;
+    background: linear-gradient(135deg, #00f0ff, #ff00e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.5rem;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.game-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 140px;
+}
+
+.info-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+}
+
+.info-box h3 {
+    color: #00f0ff;
+    font-size: 0.8rem;
+    letter-spacing: 0.2rem;
+    margin-bottom: 8px;
+}
+
+.info-box p {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.game-area {
+    position: relative;
+    border: 2px solid rgba(0, 240, 255, 0.3);
+    border-radius: 5px;
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
+}
+
+#tetris {
+    display: block;
+    background: #111133;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(10, 10, 46, 0.95);
+    z-index: 10;
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+.overlay h2 {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #00f0ff, #ff00e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+}
+
+.overlay button {
+    background: linear-gradient(135deg, #00f0ff, #0080ff);
+    color: #fff;
+    border: none;
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    border-radius: 25px;
+    cursor: pointer;
+    letter-spacing: 0.1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin: 10px 0;
+}
+
+.overlay button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+.controls-info {
+    margin-top: 20px;
+    text-align: left;
+}
+
+.controls-info p {
+    margin: 5px 0;
+    color: #aaa;
+    font-size: 0.85rem;
+}
+
+kbd {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+}
+
+.controls-mini p {
+    font-size: 0.75rem;
+    color: #888;
+    margin: 3px 0;
+}
+
+#next-piece {
+    display: block;
+    margin: 0 auto;
+    background: transparent;
+}
+
+footer {
+    margin-top: 20px;
+    color: #555;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 700px) {
+    .side-panel {
+        display: none;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+}

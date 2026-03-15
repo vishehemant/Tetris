@@ -1,0 +1,13 @@
+.git
+.github
+*.md
+LICENSE
+docker-compose*.yml
+k8s/
+jenkins/
+argocd/
+monitoring/
+scripts/
+docs/
+.gitignore
+.env*

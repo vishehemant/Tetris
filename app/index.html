@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris - DevSecOps Demo</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TETRIS</h1>
+            <p class="subtitle">DevSecOps CI/CD Pipeline Demo</p>
+        </header>
+
+        <div class="game-wrapper">
+            <div class="side-panel left-panel">
+                <div class="info-box">
+                    <h3>SCORE</h3>
+                    <p id="score">0</p>
+                </div>
+                <div class="info-box">
+                    <h3>LEVEL</h3>
+                    <p id="level">1</p>
+                </div>
+                <div class="info-box">
+                    <h3>LINES</h3>
+                    <p id="lines">0</p>
+                </div>
+            </div>
+
+            <div class="game-area">
+                <canvas id="tetris" width="300" height="600"></canvas>
+                <div id="game-over" class="overlay hidden">
+                    <h2>GAME OVER</h2>
+                    <p>Score: <span id="final-score">0</span></p>
+                    <button id="restart-btn">PLAY AGAIN</button>
+                </div>
+                <div id="start-screen" class="overlay">
+                    <h2>TETRIS</h2>
+                    <button id="start-btn">START GAME</button>
+                    <div class="controls-info">
+                        <p><kbd>&larr;</kbd> <kbd>&rarr;</kbd> Move</p>
+                        <p><kbd>&uarr;</kbd> Rotate</p>
+                        <p><kbd>&darr;</kbd> Soft Drop</p>
+                        <p><kbd>Space</kbd> Hard Drop</p>
+                        <p><kbd>P</kbd> Pause</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-panel right-panel">
+                <div class="info-box">
+                    <h3>NEXT</h3>
+                    <canvas id="next-piece" width="120" height="120"></canvas>
+                </div>
+                <div class="info-box">
+                    <h3>CONTROLS</h3>
+                    <div class="controls-mini">
+                        <p>&larr; &rarr; Move</p>
+                        <p>&uarr; Rotate</p>
+                        <p>&darr; Drop</p>
+                        <p>Space Hard</p>
+                        <p>P Pause</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built with DevSecOps | Jenkins CI | Argo CD | Kubernetes</p>
+        </footer>
+    </div>
+
+    <script src="js/tetris.js"></script>
+</body>
+</html>
