@@ -33,8 +33,8 @@ if [ "$INSTALL_METHOD" == "helm" ]; then
         --namespace jenkins \
         --set controller.serviceType=NodePort \
         --set controller.nodePort=30080 \
-        --set controller.adminUser=admin \
-        --set controller.adminPassword=admin123 \
+        --set controller.admin.username=admin \
+        --set controller.admin.password=admin123 \
         --set controller.installPlugins[0]=kubernetes:latest \
         --set controller.installPlugins[1]=workflow-aggregator:latest \
         --set controller.installPlugins[2]=git:latest \
